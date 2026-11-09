@@ -36,7 +36,7 @@
   <header id="top" hidden>
     <button id="sideBtn" class="ib" aria-label="목차 열고 닫기" hidden></button>
     <button id="brandBtn" class="brand" type="button" title="첫 화면으로">슬독생</button>
-    <button id="roleChip" class="me" type="button" title="내 프로필"></button>
+    <button id="roleChip" class="mebtn" type="button" title="내 프로필"></button>
     <span class="spacer"></span>
     <button id="logoutBtn" class="btn small">나가기</button>
   </header>
@@ -50,7 +50,7 @@
   <script>
   (() => {
     'use strict';
-    const SERVER = 'https://script.google.com/macros/s/AKfycby7vQTzAnTqEKDkJBuO5oUsTbtj-Vy8ARPH0JZXFF7vKpmOxq11zBUanFDzEqZ94BURDQ/exec', BUILD = 'WnWakw';
+    const SERVER = 'https://script.google.com/macros/s/AKfycby7vQTzAnTqEKDkJBuO5oUsTbtj-Vy8ARPH0JZXFF7vKpmOxq11zBUanFDzEqZ94BURDQ/exec', BUILD = 'yfRMNw';
     const $ = s => document.querySelector(s);
     const auth = $('#auth');
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
