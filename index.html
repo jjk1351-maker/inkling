@@ -50,7 +50,7 @@
   <script>
   (() => {
     'use strict';
-    const SERVER = 'https://script.google.com/macros/s/AKfycby7vQTzAnTqEKDkJBuO5oUsTbtj-Vy8ARPH0JZXFF7vKpmOxq11zBUanFDzEqZ94BURDQ/exec', BUILD = 'yfRMNw';
+    const SERVER = 'https://script.google.com/macros/s/AKfycby7vQTzAnTqEKDkJBuO5oUsTbtj-Vy8ARPH0JZXFF7vKpmOxq11zBUanFDzEqZ94BURDQ/exec', BUILD = 'b9U0BA';
     const $ = s => document.querySelector(s);
     const auth = $('#auth');
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -77,10 +77,14 @@
     /* ---------- 로그인 화면 ---------- */
     let tab = 'login', who = 'kid';
     function drawAuth(msg) {
-      const isG = who === 'guardian';
+      const isG = who === 'guardian', isA = who === 'admin';
       let form = '';
-      if (tab === 'login') {
-        form = `<div class="tabs"><button data-who="kid" class="${isG ? '' : 'on'}">학생</button><button data-who="guardian" class="${isG ? 'on' : ''}">보호자</button></div>
+      if (tab === 'login' && isA) {
+        form = `<div class="tabs"><button data-who="kid">학생</button><button data-who="guardian">보호자</button><button data-who="admin" class="on">관리자</button></div>
+          <label for="pn">관리자 비밀번호</label><input id="pn" type="password" autocomplete="off" maxlength="40">
+          <button class="go" id="go">들어가기</button>`;
+      } else if (tab === 'login') {
+        form = `<div class="tabs"><button data-who="kid" class="${isG ? '' : 'on'}">학생</button><button data-who="guardian" class="${isG ? 'on' : ''}">보호자</button><button data-who="admin">관리자</button></div>
           <label for="fc">가족코드</label><input id="fc" autocomplete="off" autocapitalize="characters">
           ${isG ? '' : '<label for="nm">내 이름</label><input id="nm" autocomplete="off" maxlength="10">'}
           <label for="pn">${isG ? '보호자 비밀번호' : '내 비밀번호'}</label><input id="pn" type="password" autocomplete="off" maxlength="12">
@@ -99,6 +103,7 @@
           <label for="pn2">비밀번호 확인</label><input id="pn2" type="password" maxlength="12" autocomplete="off">
           <button class="go" id="go">가족 만들고 시작하기</button>`;
       }
+      if (tab === 'signup' && isA) { who = 'kid'; return drawAuth(msg); }
       auth.innerHTML = `<div class="box"><h1>슬독생</h1><p class="sub">${tab === 'login' ? '슬기로운 독서 생활 · 초등 탐구 독서' : '처음이면 가입해요'}</p>
         ${form}<p class="err" id="err">${esc(msg || '')}</p>
         <div class="note">${tab === 'login' ? '처음이에요? <a href="#" id="toggle">가입하기</a>' : '이미 가입했어요? <a href="#" id="toggle">로그인</a>'}</div></div>`;
@@ -110,9 +115,12 @@
     const val = id => { const e = $('#' + id); return e ? e.value.trim() : ''; };
     async function submit() {
       const btn = $('#go'), err = $('#err'); err.textContent = '';
-      const g = who === 'guardian', fc = val('fc'), pn = val('pn');
+      const g = who === 'guardian', ad = who === 'admin', fc = val('fc'), pn = ad ? $('#pn').value : val('pn');
       let action, body;
-      if (tab === 'login') {
+      if (tab === 'login' && ad) {
+        if (!pn) { err.textContent = '비밀번호를 입력해 주세요.'; return; }
+        action = 'adminLogin'; body = { password: pn };
+      } else if (tab === 'login') {
         if (!fc || !pn || (!g && !val('nm'))) { err.textContent = '모두 입력해 주세요.'; return; }
         action = g ? 'guardianLogin' : 'login'; body = { familyCode: fc, name: val('nm'), pin: pn };
       } else {
@@ -124,7 +132,7 @@
       btn.disabled = true; btn.textContent = '확인하는 중…';
       const res = await api(action, body);
       if (!res.ok) { btn.disabled = false; btn.textContent = '다시 해 보기'; err.textContent = res.error || '실패했어요.'; return; }
-      const sess = { role: g ? 'guardian' : 'kid', token: res.token, kid: res.kid || null, fam: res.family || null, keys: res.keys, famCode: g ? (res.family && res.family.code) : fc.toUpperCase() };
+      const sess = { role: ad ? 'admin' : g ? 'guardian' : 'kid', token: res.token, kid: res.kid || null, fam: res.family || null, keys: res.keys, famCode: ad ? '' : g ? (res.family && res.family.code) : fc.toUpperCase() };
       try { sessionStorage.setItem('rs', JSON.stringify(sess)); } catch (e) { /* ignore */ }
       start(sess);
     }
