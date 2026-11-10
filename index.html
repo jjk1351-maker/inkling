@@ -50,7 +50,7 @@
   <script>
   (() => {
     'use strict';
-    const SERVER = 'https://script.google.com/macros/s/AKfycby7vQTzAnTqEKDkJBuO5oUsTbtj-Vy8ARPH0JZXFF7vKpmOxq11zBUanFDzEqZ94BURDQ/exec', BUILD = 'u2ETAg';
+    const SERVER = 'https://script.google.com/macros/s/AKfycby7vQTzAnTqEKDkJBuO5oUsTbtj-Vy8ARPH0JZXFF7vKpmOxq11zBUanFDzEqZ94BURDQ/exec', BUILD = 'oYK-3w';
     const $ = s => document.querySelector(s);
     const auth = $('#auth');
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -72,7 +72,9 @@
       const u = new Uint8Array(buf);
       return crypto.subtle.decrypt({ name: 'AES-GCM', iv: u.slice(0, 12) }, await key(keyB64), u.slice(12));
     }
-    const getBin = async p => { const r = await fetch(p + '?v=' + BUILD); if (!r.ok) throw new Error(p); return r.arrayBuffer(); };
+    const binCache = {};
+    const getBin = p => binCache[p] || (binCache[p] = fetch(p + '?v=' + BUILD).then(r => { if (!r.ok) throw new Error(p); return r.arrayBuffer(); }).catch(e => { delete binCache[p]; throw e; }));
+    ['content.bin', 'app.bin', 'style.bin'].forEach(p => getBin(p).catch(() => {}));   // 로그인하는 동안 미리 내려받기
 
     /* ---------- 로그인 화면 ---------- */
     let tab = 'login', who = 'kid';
@@ -134,6 +136,7 @@
       if (!res.ok) { btn.disabled = false; btn.textContent = '다시 해 보기'; err.textContent = res.error || '실패했어요.'; return; }
       const sess = { role: ad ? 'admin' : g ? 'guardian' : 'kid', token: res.token, kid: res.kid || null, fam: res.family || null, keys: res.keys, famCode: ad ? '' : g ? (res.family && res.family.code) : fc.toUpperCase() };
       try { sessionStorage.setItem('rs', JSON.stringify(sess)); } catch (e) { /* ignore */ }
+      sess.pre = res.state || null;   // 로그인 응답에 실린 내 상태 (저장하지 않음)
       start(sess);
     }
 
@@ -149,6 +152,7 @@
         const imgs = {};
         window.__CTX = {
           role: s.role, kid: s.kid, fam: s.fam, famCode: s.famCode,
+          pre: s.pre || null,
           content: JSON.parse(T.decode(c)), guard: gd ? JSON.parse(T.decode(gd)) : null,
           api: async (action, body) => {
             const r = await api(action, Object.assign({ token: s.token }, body || {}));
